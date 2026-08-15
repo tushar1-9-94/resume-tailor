@@ -175,9 +175,22 @@ form.addEventListener("submit", async (e) => {
       notesBlock.classList.add("hidden");
     }
 
-    // Set download link
-    const downloadLink = document.getElementById("downloadLink");
-    downloadLink.href = data.download_url;
+    // Display section-by-section suggestions
+    const suggestionsSection = document.getElementById("suggestionsSection");
+    const suggestionsContainer = document.getElementById("suggestionsContainer");
+    suggestionsContainer.innerHTML = "";
+    
+    if (data.section_suggestions) {
+      Object.entries(data.section_suggestions).forEach(([sectionName, sectionData]) => {
+        if (sectionData.suggested && sectionData.suggested.trim()) {
+          const card = createSuggestionCard(sectionName, sectionData);
+          suggestionsContainer.appendChild(card);
+        }
+      });
+      suggestionsSection.classList.remove("hidden");
+    } else {
+      suggestionsSection.classList.add("hidden");
+    }
 
     // Show results with animation
     results.classList.remove("hidden");
@@ -255,3 +268,146 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+// Function to create suggestion cards
+function createSuggestionCard(sectionName, sectionData) {
+  const card = document.createElement('div');
+  card.className = 'suggestion-card';
+  
+  // Format section name for display
+  const formattedName = sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  
+  // Card header
+  const header = document.createElement('div');
+  header.className = 'suggestion-header';
+  
+  const title = document.createElement('div');
+  title.className = 'suggestion-title';
+  title.innerHTML = `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+    ${formattedName}
+  `;
+  
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+    </svg>
+    Copy Suggested
+  `;
+  copyBtn.onclick = () => copyToClipboard(sectionData.suggested, copyBtn);
+  
+  header.appendChild(title);
+  header.appendChild(copyBtn);
+  card.appendChild(header);
+  
+  // Comparison container
+  const comparisonContainer = document.createElement('div');
+  comparisonContainer.className = 'comparison-container';
+  
+  // Original content
+  const originalBox = document.createElement('div');
+  originalBox.className = 'comparison-box';
+  const originalLabel = document.createElement('div');
+  originalLabel.className = 'comparison-label original';
+  originalLabel.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    Original
+  `;
+  const originalContent = document.createElement('div');
+  originalContent.className = 'comparison-content';
+  originalContent.textContent = sectionData.original || 'No original content found';
+  originalBox.appendChild(originalLabel);
+  originalBox.appendChild(originalContent);
+  
+  // Suggested content
+  const suggestedBox = document.createElement('div');
+  suggestedBox.className = 'comparison-box';
+  const suggestedLabel = document.createElement('div');
+  suggestedLabel.className = 'comparison-label suggested';
+  suggestedLabel.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+      <polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+    Suggested
+  `;
+  const suggestedContent = document.createElement('div');
+  suggestedContent.className = 'comparison-content suggested';
+  suggestedContent.textContent = sectionData.suggested;
+  suggestedBox.appendChild(suggestedLabel);
+  suggestedBox.appendChild(suggestedContent);
+  
+  comparisonContainer.appendChild(originalBox);
+  comparisonContainer.appendChild(suggestedBox);
+  card.appendChild(comparisonContainer);
+  
+  // Reasoning
+  if (sectionData.reasoning) {
+    const reasoning = document.createElement('div');
+    reasoning.className = 'reasoning';
+    reasoning.innerHTML = `
+      <div class="reasoning-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        Why this change?
+      </div>
+      ${sectionData.reasoning}
+    `;
+    card.appendChild(reasoning);
+  }
+  
+  return card;
+}
+
+// Copy to clipboard function
+async function copyToClipboard(text, button) {
+  try {
+    await navigator.clipboard.writeText(text);
+    button.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      Copied!
+    `;
+    button.classList.add('copied');
+    
+    setTimeout(() => {
+      button.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        Copy Suggested
+      `;
+      button.classList.remove('copied');
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy text: ', err);
+    button.innerHTML = 'Failed to copy';
+    setTimeout(() => {
+      button.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        Copy Suggested
+      `;
+    }, 2000);
+  }
+}

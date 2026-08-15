@@ -35,6 +35,32 @@ def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def _format_experience_suggestions(experience_data):
+    """Format experience suggestions for display"""
+    if not experience_data:
+        return ""
+    
+    formatted = []
+    for entry in experience_data:
+        title = entry.get("title", "")
+        company = entry.get("company", "")
+        dates = entry.get("dates", "")
+        bullets = entry.get("bullets", [])
+        
+        entry_text = f"{title}"
+        if company:
+            entry_text += f" | {company}"
+        if dates:
+            entry_text += f" | {dates}"
+        
+        formatted.append(entry_text)
+        for bullet in bullets:
+            formatted.append(f"• {bullet}")
+        formatted.append("")  # Empty line between entries
+    
+    return "\n".join(formatted)
+
+
 @app.route("/")
 def index():
     logger.info("Index route accessed")
@@ -124,15 +150,6 @@ def tailor():
         logger.info("Resume tailoring completed")
         logger.info(f"Tailored sections: {list(tailored.keys())}")
 
-        output_filename = f"tailored_resume_{run_id}.docx"
-        output_path = os.path.join(OUTPUT_DIR, output_filename)
-        logger.info(f"Output filename: {output_filename}")
-        logger.info(f"Output path: {output_path}")
-        
-        logger.info("Building DOCX file")
-        build_resume_docx(output_path, contact, tailored, job_title)
-        logger.info("DOCX file built successfully")
-
         # Re-score against the tailored output text for an "after" number
         logger.info("Re-scoring tailored resume against keywords")
         tailored_flat_text = " ".join([
@@ -151,15 +168,46 @@ def tailor():
         ai_mode = bool(os.environ.get("ANTHROPIC_API_KEY"))
         logger.info(f"AI mode used: {ai_mode}")
 
+        # Prepare section-by-section suggestions with original content
+        section_suggestions = {
+            "professional_summary": {
+                "original": sections.get("summary", "") or sections.get("professional summary", "") or sections.get("objective", "") or sections.get("profile", ""),
+                "suggested": tailored.get("professional_summary", ""),
+                "reasoning": "Optimized to include key JD keywords and highlight relevant experience for the target role."
+            },
+            "core_skills": {
+                "original": sections.get("skills", "") or sections.get("core competencies", "") or sections.get("technical skills", ""),
+                "suggested": " | ".join(tailored.get("core_skills", [])),
+                "reasoning": "Prioritized skills that match the JD requirements, reordered for maximum ATS keyword matching."
+            },
+            "experience": {
+                "original": sections.get("experience", "") or sections.get("work experience", "") or sections.get("professional experience", ""),
+                "suggested": _format_experience_suggestions(tailored.get("experience", [])),
+                "reasoning": "Enhanced bullet points with stronger action verbs, quantification, and JD-specific keywords while maintaining your actual experience."
+            },
+            "education": {
+                "original": sections.get("education", ""),
+                "suggested": "\n".join(tailored.get("education", [])),
+                "reasoning": "Formatted for consistency and clarity, no changes to actual credentials."
+            },
+            "certifications": {
+                "original": sections.get("certifications", "") or sections.get("certification", ""),
+                "suggested": "\n".join(tailored.get("certifications", [])),
+                "reasoning": "Standardized formatting for better ATS parsing."
+            }
+        }
+
         response_data = {
             "success": True,
-            "download_url": f"/api/download/{output_filename}",
             "job_title": job_title,
             "keywords": keywords,
             "score_before": score_before,
             "score_after": score_after,
             "notes_for_candidate": tailored.get("notes_for_candidate", []),
             "ai_mode": ai_mode,
+            "contact": contact,
+            "section_suggestions": section_suggestions,
+            "tailored_content": tailored
         }
         logger.info("=== Resume tailoring process completed successfully ===")
         return jsonify(response_data)
