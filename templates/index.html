@@ -3,49 +3,125 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ATS Resume Tailor</title>
+<title>ATS Resume Tailor - AI-Powered Resume Optimization</title>
 <link rel="stylesheet" href="/static/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+  <div class="background-gradient"></div>
   <div class="wrap">
     <header>
-      <h1>ATS Resume Tailor</h1>
-      <p class="sub">Paste a job description, upload your resume, and get a redesigned, ATS-friendly version aligned to that JD.</p>
-      {% if ai_enabled %}
-        <span class="badge badge-ai">AI rewriting enabled</span>
-      {% else %}
-        <span class="badge badge-rule">Rule-based mode (set ANTHROPIC_API_KEY for AI rewriting)</span>
-      {% endif %}
+      <div class="header-content">
+        <div class="logo">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="48" height="48" rx="12" fill="url(#logo-gradient)"/>
+            <path d="M14 16H34M14 24H30M14 32H26" stroke="white" stroke-width="3" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="logo-gradient" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#6c8cff"/>
+                <stop offset="1" stop-color="#35d68a"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <h1>ATS Resume Tailor</h1>
+        </div>
+        <div class="badges">
+          {% if ai_enabled %}
+            <span class="badge badge-ai">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+              AI-Powered
+            </span>
+          {% else %}
+            <span class="badge badge-rule">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              Smart Analysis
+            </span>
+          {% endif %}
+        </div>
+      </div>
+      <p class="sub">Transform your resume into an ATS-optimized, job-specific masterpiece. Upload your resume and job description to get instant keyword matching and professional rewriting.</p>
     </header>
 
     <form id="tailorForm">
       <div class="grid">
         <div class="field">
-          <label for="jd_text">Job Description</label>
-          <textarea id="jd_text" name="jd_text" rows="16" placeholder="Paste the full job description here..."></textarea>
+          <label for="jd_text">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            Job Description
+          </label>
+          <textarea id="jd_text" name="jd_text" rows="16" placeholder="Paste the full job description here... Include responsibilities, requirements, and preferred qualifications for best results."></textarea>
         </div>
 
         <div class="field">
-          <label for="resume_file">Your Resume (PDF, DOCX, or TXT)</label>
+          <label for="resume_file">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <path d="M12 18v-6"/>
+              <path d="M9 15l3 3 3-3"/>
+            </svg>
+            Your Resume
+          </label>
           <div class="dropzone" id="dropzone">
             <input type="file" id="resume_file" name="resume_file" accept=".pdf,.docx,.doc,.txt" />
-            <p id="fileLabel">Click to choose a file, or drag it here</p>
+            <div class="dropzone-content">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <p id="fileLabel">Drop your resume here or click to browse</p>
+              <p class="file-hint">Supports PDF, DOCX, and TXT files (max 10MB)</p>
+            </div>
           </div>
-          <button type="submit" id="submitBtn">Redesign My Resume</button>
+          <button type="submit" id="submitBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            Optimize My Resume
+          </button>
           <div id="statusMsg"></div>
         </div>
       </div>
     </form>
 
     <section id="results" class="hidden">
-      <h2>Results</h2>
+      <div class="results-header">
+        <h2>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          Optimization Results
+        </h2>
+        <p class="results-sub">Your resume has been analyzed and optimized for the target position</p>
+      </div>
+
       <div class="score-row">
         <div class="score-card">
           <span class="score-label">Before</span>
           <span class="score-value" id="scoreBefore">0%</span>
           <span class="score-sub">JD keyword match</span>
         </div>
-        <div class="score-arrow">&rarr;</div>
+        <div class="score-arrow">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </div>
         <div class="score-card highlight">
           <span class="score-label">After</span>
           <span class="score-value" id="scoreAfter">0%</span>
@@ -54,23 +130,56 @@
       </div>
 
       <div class="two-col">
-        <div>
-          <h3>Matched Keywords</h3>
+        <div class="keyword-section">
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            Matched Keywords
+          </h3>
           <div id="matchedKeywords" class="chip-list"></div>
         </div>
-        <div>
-          <h3>Still Missing</h3>
+        <div class="keyword-section">
+          <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Still Missing
+          </h3>
           <div id="missingKeywords" class="chip-list missing"></div>
         </div>
       </div>
 
       <div id="notesBlock" class="notes hidden">
-        <h3>Notes for You</h3>
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          Recommendations for You
+        </h3>
         <ul id="notesList"></ul>
       </div>
 
-      <a id="downloadLink" class="download-btn" href="#" download>Download Tailored Resume (.docx)</a>
+      <div class="download-section">
+        <a id="downloadLink" class="download-btn" href="#" download>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download Tailored Resume (.docx)
+        </a>
+        <p class="download-hint">Your optimized resume is ready for immediate download and use</p>
+      </div>
     </section>
+
+    <footer>
+      <p>Built with ❤️ to help you land your dream job. Optimized for ATS systems worldwide.</p>
+    </footer>
   </div>
 
   <script src="/static/app.js"></script>
