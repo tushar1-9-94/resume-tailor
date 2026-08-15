@@ -7,6 +7,10 @@ API required.
 import re
 from collections import Counter
 from sklearn.feature_extraction.text import TfidfVectorizer
+from logger_config import setup_logger
+
+# Set up logger for this module
+logger = setup_logger(__name__)
 
 GENERIC_STOPWORDS = {
     "the", "and", "a", "to", "of", "in", "for", "with", "on", "is", "are",
@@ -48,9 +52,14 @@ def _clean(text: str) -> str:
 
 
 def extract_keywords(jd_text: str, top_n: int = 25) -> list:
+    logger.info(f"Starting keyword extraction with top_n={top_n}")
+    logger.debug(f"Input JD text length: {len(jd_text)} characters")
+    
     jd_text = _clean(jd_text)
+    logger.debug(f"Cleaned JD text length: {len(jd_text)} characters")
 
     seed_hits = {m.group(0).strip().lower() for m in SKILL_SEED_PATTERNS.finditer(jd_text)}
+    logger.info(f"Found {len(seed_hits)} seed skill matches: {list(seed_hits)[:10]}...")
 
     # TF-IDF over sentence-level "documents" so single-JD input still yields
     # a meaningful term ranking.
@@ -58,6 +67,8 @@ def extract_keywords(jd_text: str, top_n: int = 25) -> list:
     sentences = [s.strip() for s in sentences if len(s.strip()) > 3]
     if not sentences:
         sentences = [jd_text]
+    
+    logger.info(f"Split JD into {len(sentences)} sentences for TF-IDF analysis")
 
     keywords_ranked = []
     try:
@@ -72,7 +83,10 @@ def extract_keywords(jd_text: str, top_n: int = 25) -> list:
         terms = vectorizer.get_feature_names_out()
         ranked = sorted(zip(terms, scores), key=lambda x: -x[1])
         keywords_ranked = [t for t, s in ranked if t.lower() not in GENERIC_STOPWORDS]
-    except ValueError:
+        logger.info(f"TF-IDF extracted {len(keywords_ranked)} potential keywords")
+        logger.debug(f"Top 10 TF-IDF keywords: {keywords_ranked[:10]}")
+    except ValueError as e:
+        logger.warning(f"TF-IDF analysis failed: {e}")
         keywords_ranked = []
 
     ordered = list(seed_hits)
@@ -80,12 +94,20 @@ def extract_keywords(jd_text: str, top_n: int = 25) -> list:
         if kw.lower() not in seed_hits and len(ordered) < top_n:
             ordered.append(kw)
 
-    return ordered[:top_n]
+    result = ordered[:top_n]
+    logger.info(f"Final keyword list: {len(result)} keywords")
+    logger.debug(f"Final keywords: {result}")
+    return result
 
 
 def score_resume_against_keywords(resume_text: str, keywords: list) -> dict:
+    logger.info("Starting resume keyword scoring")
+    logger.debug(f"Resume text length: {len(resume_text)} characters")
+    logger.debug(f"Number of keywords to check: {len(keywords)}")
+    
     resume_lower = resume_text.lower()
     matched, missing = [], []
+    
     for kw in keywords:
         pattern = re.escape(kw.lower())
         if re.search(pattern, resume_lower):
@@ -95,6 +117,10 @@ def score_resume_against_keywords(resume_text: str, keywords: list) -> dict:
 
     total = len(keywords) or 1
     match_pct = round(100 * len(matched) / total, 1)
+    
+    logger.info(f"Scoring completed: {len(matched)}/{total} keywords matched ({match_pct}%)")
+    logger.debug(f"Matched keywords: {matched}")
+    logger.debug(f"Missing keywords: {missing}")
 
     return {
         "matched": matched,
@@ -105,13 +131,26 @@ def score_resume_against_keywords(resume_text: str, keywords: list) -> dict:
 
 
 def extract_job_title(jd_text: str) -> str:
+    logger.info("Starting job title extraction")
+    logger.debug(f"Input JD text length: {len(jd_text)} characters")
+    
     lines = [l.strip() for l in jd_text.splitlines() if l.strip()]
     if not lines:
+        logger.warning("No lines found in JD text")
         return ""
+    
     first = lines[0]
+    logger.debug(f"First line: {first}")
+    
     if len(first.split()) <= 8:
+        logger.info(f"Using first line as job title: {first}")
         return first
+    
     m = re.search(r"(?:hiring|seeking|looking for)\s+(?:an?\s+)?([A-Z][A-Za-z0-9 \-/]{3,60})", jd_text)
     if m:
-        return m.group(1).strip()
+        title = m.group(1).strip()
+        logger.info(f"Extracted job title from pattern: {title}")
+        return title
+    
+    logger.warning("Could not extract job title from JD")
     return ""

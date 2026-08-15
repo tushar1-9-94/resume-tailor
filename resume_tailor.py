@@ -15,6 +15,10 @@ Two modes:
 import os
 import json
 import re
+from logger_config import setup_logger
+
+# Set up logger for this module
+logger = setup_logger(__name__)
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
@@ -113,10 +117,18 @@ Your goal is to maximize ATS match score while maintaining complete honesty abou
 
 
 def tailor_with_ai(resume_text: str, jd_text: str, contact: dict) -> dict:
+    logger.info("Starting AI-powered resume tailoring")
+    logger.debug(f"Resume text length: {len(resume_text)} characters")
+    logger.debug(f"JD text length: {len(jd_text)} characters")
+    logger.debug(f"Contact info: {contact}")
+    
     from anthropic import Anthropic
 
-    client = Anthropic(api_key=ANTHROPIC_API_KEY)
-    user_prompt = f"""JOB DESCRIPTION:
+    try:
+        client = Anthropic(api_key=ANTHROPIC_API_KEY)
+        logger.info("Anthropic client initialized successfully")
+        
+        user_prompt = f"""JOB DESCRIPTION:
 {jd_text}
 
 CANDIDATE'S CURRENT RESUME (raw extracted text):
@@ -126,39 +138,65 @@ Rewrite/restructure this into a JD-aligned, ATS-friendly resume following the re
 Do not invent employers, titles, dates, or skills not evidenced in the original resume. \
 Use strong action verbs and quantify impact wherever the original text supports it."""
 
-    response = client.messages.create(
-        model="claude-sonnet-4-5",
-        max_tokens=4000,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
-    raw = response.content[0].text.strip()
-    raw = re.sub(r"^```(json)?", "", raw).strip()
-    raw = re.sub(r"```$", "", raw).strip()
-    data = json.loads(raw)
-    return data
+        logger.info("Sending request to Claude API")
+        response = client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=4000,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        logger.info("Received response from Claude API")
+        
+        raw = response.content[0].text.strip()
+        logger.debug(f"Raw response length: {len(raw)} characters")
+        
+        raw = re.sub(r"^```(json)?", "", raw).strip()
+        raw = re.sub(r"```$", "", raw).strip()
+        
+        data = json.loads(raw)
+        logger.info("Successfully parsed AI response as JSON")
+        logger.debug(f"Tailored resume sections: {list(data.keys())}")
+        
+        return data
+    except Exception as e:
+        logger.error(f"AI tailoring failed: {e}", exc_info=True)
+        raise
 
 
 def tailor_rule_based(resume_text: str, sections: dict, contact: dict,
                        matched_keywords: list, missing_keywords: list, job_title: str) -> dict:
     """Deterministic fallback that never invents content."""
+    logger.info("Starting rule-based resume tailoring")
+    logger.debug(f"Matched keywords: {len(matched_keywords)}")
+    logger.debug(f"Missing keywords: {len(missing_keywords)}")
+    logger.debug(f"Job title: {job_title}")
+    logger.debug(f"Available sections: {list(sections.keys())}")
+    
     skills_blob = sections.get("skills", "") or sections.get("core competencies", "") \
         or sections.get("technical skills", "")
     existing_skills = re.split(r"[,\n•;|/]", skills_blob)
     existing_skills = [s.strip() for s in existing_skills if s.strip() and len(s.strip()) < 40]
+    logger.info(f"Extracted {len(existing_skills)} existing skills from resume")
 
     # Prioritize skills that also appear in the JD keyword list.
     matched_lower = {k.lower() for k in matched_keywords}
     prioritized = [s for s in existing_skills if s.lower() in matched_lower]
     remaining = [s for s in existing_skills if s.lower() not in matched_lower]
     core_skills = prioritized + remaining
+    logger.info(f"Prioritized {len(prioritized)} skills that match JD keywords")
+    
     if not core_skills:
         core_skills = matched_keywords[:12]
+        logger.warning("No existing skills found, using matched keywords as fallback")
 
     summary_source = sections.get("summary", "") or sections.get("professional summary", "") \
         or sections.get("objective", "") or sections.get("profile", "")
     role_phrase = f"targeting the {job_title} role" if job_title else "aligned to the target role"
     top_kw = ", ".join(matched_keywords[:6]) if matched_keywords else "the role's core requirements"
+    
+    logger.debug(f"Summary source found: {bool(summary_source)}")
+    logger.debug(f"Role phrase: {role_phrase}")
+    
     if summary_source:
         professional_summary = (
             f"{summary_source.strip()} Experienced professional {role_phrase}, with demonstrated "
@@ -170,27 +208,33 @@ def tailor_rule_based(resume_text: str, sections: dict, contact: dict,
             f"{top_kw}. Proven track record of delivering measurable outcomes and collaborating "
             f"effectively across teams."
         )
+    logger.info(f"Generated professional summary: {len(professional_summary)} characters")
 
     experience_raw = sections.get("experience", "") or sections.get("work experience", "") \
         or sections.get("professional experience", "") or sections.get("employment history", "")
     experience_entries = _parse_experience_blob(experience_raw)
+    logger.info(f"Parsed {len(experience_entries)} experience entries")
 
     education_raw = sections.get("education", "")
     education = [l.strip() for l in education_raw.splitlines() if l.strip()]
+    logger.info(f"Extracted {len(education)} education entries")
 
     certs_raw = sections.get("certifications", "") or sections.get("certification", "")
     certifications = [l.strip() for l in certs_raw.splitlines() if l.strip()]
+    logger.info(f"Extracted {len(certifications)} certifications")
 
     notes = []
     if missing_keywords:
-        notes.append(
+        note = (
             "The job description emphasizes these terms that weren't clearly found in your resume: "
             + ", ".join(missing_keywords[:12])
             + ". If you have relevant experience with any of these, add specific, honest examples — "
               "do not add skills you don't actually have."
         )
+        notes.append(note)
+        logger.info(f"Added note about {len(missing_keywords)} missing keywords")
 
-    return {
+    result = {
         "professional_summary": professional_summary,
         "core_skills": core_skills[:20],
         "experience": experience_entries,
@@ -198,22 +242,36 @@ def tailor_rule_based(resume_text: str, sections: dict, contact: dict,
         "certifications": certifications,
         "notes_for_candidate": notes,
     }
+    logger.info("Rule-based tailoring completed successfully")
+    return result
 
 
 def _parse_experience_blob(blob: str) -> list:
     """Best-effort split of a raw experience section into entries+bullets."""
+    logger.debug("Starting experience blob parsing")
+    logger.debug(f"Input blob length: {len(blob)} characters")
+    
     if not blob.strip():
+        logger.warning("Empty experience blob provided")
         return []
+    
     lines = [l.rstrip() for l in blob.splitlines() if l.strip()]
+    logger.debug(f"Processing {len(lines)} lines from experience section")
+    
     entries = []
     current = None
+    bullet_count = 0
+    header_count = 0
+    
     for line in lines:
         is_bullet = bool(re.match(r"^\s*[-•*]", line))
         if is_bullet:
             if current is None:
                 current = {"title": "", "company": "", "dates": "", "bullets": []}
                 entries.append(current)
+                logger.debug("Created new entry for orphaned bullet")
             current["bullets"].append(re.sub(r"^\s*[-•*]\s*", "", line))
+            bullet_count += 1
         else:
             # Treat as a new role header line; pull trailing date range out of
             # the header text so it isn't duplicated in the rendered output.
@@ -221,20 +279,36 @@ def _parse_experience_blob(blob: str) -> list:
             if date_match:
                 dates = date_match.group(1).strip()
                 header = line[:date_match.start()].rstrip(" ,-–—")
+                logger.debug(f"Extracted date '{dates}' from header")
             else:
                 dates = ""
                 header = line
             current = {"title": header, "company": "", "dates": dates, "bullets": []}
             entries.append(current)
+            header_count += 1
+    
+    logger.info(f"Parsed {len(entries)} experience entries with {bullet_count} total bullets")
+    logger.debug(f"Found {header_count} role headers")
     return entries
 
 
 def tailor_resume(resume_text: str, jd_text: str, sections: dict, contact: dict,
                    matched_keywords: list, missing_keywords: list, job_title: str) -> dict:
+    logger.info("=== Starting resume tailoring process ===")
+    logger.info(f"AI API key available: {bool(ANTHROPIC_API_KEY)}")
+    
     if ANTHROPIC_API_KEY:
         try:
-            return tailor_with_ai(resume_text, jd_text, contact)
-        except Exception:
+            logger.info("Attempting AI-powered tailoring")
+            result = tailor_with_ai(resume_text, jd_text, contact)
+            logger.info("AI-powered tailoring completed successfully")
+            return result
+        except Exception as e:
+            logger.warning(f"AI tailoring failed, falling back to rule-based: {e}")
             # Fall back silently if the AI call fails for any reason
             pass
-    return tailor_rule_based(resume_text, sections, contact, matched_keywords, missing_keywords, job_title)
+    
+    logger.info("Using rule-based tailoring approach")
+    result = tailor_rule_based(resume_text, sections, contact, matched_keywords, missing_keywords, job_title)
+    logger.info("=== Resume tailoring process completed ===")
+    return result
