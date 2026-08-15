@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ATS Resume Tailor</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ATS Resume Tailor</h1>
+      <p class="sub">Paste a job description, upload your resume, and get a redesigned, ATS-friendly version aligned to that JD.</p>
+      {% if ai_enabled %}
+        <span class="badge badge-ai">AI rewriting enabled</span>
+      {% else %}
+        <span class="badge badge-rule">Rule-based mode (set ANTHROPIC_API_KEY for AI rewriting)</span>
+      {% endif %}
+    </header>
+
+    <form id="tailorForm">
+      <div class="grid">
+        <div class="field">
+          <label for="jd_text">Job Description</label>
+          <textarea id="jd_text" name="jd_text" rows="16" placeholder="Paste the full job description here..."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="resume_file">Your Resume (PDF, DOCX, or TXT)</label>
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="resume_file" name="resume_file" accept=".pdf,.docx,.doc,.txt" />
+            <p id="fileLabel">Click to choose a file, or drag it here</p>
+          </div>
+          <button type="submit" id="submitBtn">Redesign My Resume</button>
+          <div id="statusMsg"></div>
+        </div>
+      </div>
+    </form>
+
+    <section id="results" class="hidden">
+      <h2>Results</h2>
+      <div class="score-row">
+        <div class="score-card">
+          <span class="score-label">Before</span>
+          <span class="score-value" id="scoreBefore">0%</span>
+          <span class="score-sub">JD keyword match</span>
+        </div>
+        <div class="score-arrow">&rarr;</div>
+        <div class="score-card highlight">
+          <span class="score-label">After</span>
+          <span class="score-value" id="scoreAfter">0%</span>
+          <span class="score-sub">JD keyword match</span>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <h3>Matched Keywords</h3>
+          <div id="matchedKeywords" class="chip-list"></div>
+        </div>
+        <div>
+          <h3>Still Missing</h3>
+          <div id="missingKeywords" class="chip-list missing"></div>
+        </div>
+      </div>
+
+      <div id="notesBlock" class="notes hidden">
+        <h3>Notes for You</h3>
+        <ul id="notesList"></ul>
+      </div>
+
+      <a id="downloadLink" class="download-btn" href="#" download>Download Tailored Resume (.docx)</a>
+    </section>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

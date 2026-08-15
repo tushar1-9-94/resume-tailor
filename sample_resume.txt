@@ -1,0 +1,24 @@
+Jane Doe
+jane.doe@email.com | (555) 123-4567 | linkedin.com/in/janedoe
+
+Summary
+Software engineer with 5 years of experience building web applications.
+
+Skills
+Python, Django, JavaScript, HTML, CSS, MySQL, Git, Agile
+
+Experience
+Software Engineer, Acme Corp, 2021 - Present
+- Built and maintained backend services for an e-commerce platform
+- Reduced page load time by 30% through query optimization
+- Collaborated with product team to ship new features
+
+Junior Developer, Beta Inc, 2019 - 2021
+- Developed internal tools using Python and Flask
+- Wrote unit tests to improve code coverage
+
+Education
+B.S. Computer Science, State University, 2019
+
+Certifications
+AWS Certified Cloud Practitioner
