@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: resume-tailor
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: FLASK_DEBUG
+        value: 0
+      - key: LOG_LEVEL
+        value: INFO
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+    disk:
+      name: uploads
+      mountPath: /uploads
+      sizeGB: 1
