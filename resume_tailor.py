@@ -140,7 +140,7 @@ Use strong action verbs and quantify impact wherever the original text supports 
 
         logger.info("Sending request to Claude API")
         response = client.messages.create(
-            model="claude-sonnet-4-5",
+            model="claude-sonnet-4-20250514",
             max_tokens=4000,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
